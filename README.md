@@ -253,11 +253,7 @@ tests/          Tests unitarios, de integración y de evaluación
 | Score global y por categoria | Implementado y documentado para `v1`, `v2` y `v3` |
 | Comparación automática V1/V2/V3 | Implementado con `--compare` y salida JSON |
 | Moderación de proveedor | Implementado con OpenAI Moderation API, configurable |
-| LLM-as-judge | Opcional |
-
-## Próximos pasos para la entrega final
-
-1. Implementar LLM-as-judge para evaluar `answer` y `actions` en los casos clasificados correctamente, manteniendo exact match para `category`.
+| LLM-as-judge | Implementado |
 
 ## Limitaciones
 

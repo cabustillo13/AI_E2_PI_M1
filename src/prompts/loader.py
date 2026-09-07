@@ -6,13 +6,14 @@ import yaml
 def load_prompt(
     prompts_path: str,
     version: str,
+    kind: str = "triage",
 ) -> dict:
 
-    path = Path(prompts_path) / f"triage_{version}.yaml"
+    path = Path(prompts_path) / f"{kind}_{version}.yaml"
 
     if not path.exists():
         raise ValueError(
-            f"Prompt version not found: {version}"
+            f"Prompt not found: {kind} {version}"
         )
 
     with path.open(encoding="utf-8") as file:
