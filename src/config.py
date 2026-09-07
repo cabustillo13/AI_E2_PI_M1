@@ -9,6 +9,8 @@ class Settings(BaseSettings):
 
     llm_provider: str = "openai"
     llm_model: str = "gpt-5-mini"
+    moderation_enabled: bool = True
+    moderation_model: str = "omni-moderation-latest"
 
     prompt_version: str = "v3"
 

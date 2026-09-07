@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from fastapi.testclient import TestClient
 
 from src.llm.base import LLMResult
+from src.llm.moderation import OpenAIModerator
 from src.metrics.logger import MetricsLogger
 from src.pipeline.triage import TriagePipeline
 from src.prompts.registry import PromptRegistry
@@ -26,6 +27,16 @@ class FakeProvider:
         )
 
 
+class FakeModerator:
+    def __init__(self, flagged_texts=None):
+        self.flagged_texts = set(flagged_texts or [])
+        self.calls = []
+
+    def is_flagged(self, text):
+        self.calls.append(text)
+        return text in self.flagged_texts
+
+
 def build_pipeline(tmp_path, responses):
     pipeline = object.__new__(TriagePipeline)
     pipeline.settings = SimpleNamespace(
@@ -38,6 +49,7 @@ def build_pipeline(tmp_path, responses):
         str(tmp_path / "metrics.jsonl")
     )
     pipeline.provider = FakeProvider(responses)
+    pipeline.moderator = None
     return pipeline
 
 
@@ -84,6 +96,54 @@ def test_pipeline_retries_output_guardrail(tmp_path):
 
     assert response.category.value == "account"
     assert pipeline.provider.calls == 2
+
+
+def test_pipeline_blocks_moderated_input(tmp_path):
+    pipeline = build_pipeline(tmp_path, [valid_response()])
+    pipeline.moderator = FakeModerator({"A dangerous request"})
+
+    import pytest
+
+    with pytest.raises(ValueError, match="OpenAI moderation"):
+        pipeline.run("A dangerous request")
+
+    assert pipeline.provider.calls == 0
+    assert pipeline.moderator.calls == ["A dangerous request"]
+
+
+def test_pipeline_retries_moderated_output(tmp_path):
+    pipeline = build_pipeline(
+        tmp_path,
+        [
+            valid_response("Flagged answer"),
+            valid_response(),
+        ],
+    )
+    pipeline.moderator = FakeModerator({"Flagged answer\nReview the account"})
+
+    response = pipeline.run("Necesito actualizar mi cuenta")
+
+    assert response.category.value == "account"
+    assert pipeline.provider.calls == 2
+    assert len(pipeline.moderator.calls) == 3
+
+
+def test_openai_moderator_returns_flagged_status():
+    class FakeModerations:
+        def create(self, model, input):
+            assert model == "omni-moderation-latest"
+            assert input == "blocked"
+            return SimpleNamespace(
+                results=[SimpleNamespace(flagged=True)]
+            )
+
+    moderator = object.__new__(OpenAIModerator)
+    moderator.client = SimpleNamespace(
+        moderations=FakeModerations()
+    )
+    moderator.model = "omni-moderation-latest"
+
+    assert moderator.is_flagged("blocked")
 
 
 def test_api_returns_validated_response(tmp_path, monkeypatch):

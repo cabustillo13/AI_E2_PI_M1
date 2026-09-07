@@ -23,6 +23,23 @@ class TriagePipeline:
             settings.metrics_path
         )
         self.provider = self._create_provider()
+        self.moderator = self._create_moderator()
+
+    def _create_moderator(self):
+        if not self.settings.moderation_enabled:
+            return None
+
+        if not self.settings.openai_api_key:
+            raise ValueError(
+                "OPENAI_API_KEY is required when moderation is enabled"
+            )
+
+        from src.llm.moderation import OpenAIModerator
+
+        return OpenAIModerator(
+            self.settings.openai_api_key,
+            self.settings.moderation_model,
+        )
 
     def _create_provider(self):
         if self.settings.llm_provider == "openai":
@@ -69,6 +86,8 @@ class TriagePipeline:
                 "Query is too long"
             )
 
+        self._moderate_input(query)
+
         prompt = self.prompts.get(
             self.settings.prompt_version
         )
@@ -102,6 +121,8 @@ class TriagePipeline:
                 validate_output(
                     response.answer
                 )
+
+                self._moderate_output(response)
 
                 break
 
@@ -141,6 +162,28 @@ class TriagePipeline:
         )
 
         return response
+
+    def _moderate_input(self, query: str) -> None:
+        if self.moderator and self.moderator.is_flagged(query):
+            raise ValueError(
+                "Request blocked by OpenAI moderation"
+            )
+
+    def _moderate_output(self, response) -> None:
+        if not self.moderator:
+            return
+
+        content = "\n".join(
+            [
+                response.answer,
+                *response.actions,
+            ]
+        )
+
+        if self.moderator.is_flagged(content):
+            raise ValueError(
+                "Response blocked by OpenAI moderation"
+            )
 
 
 def estimate_cost(

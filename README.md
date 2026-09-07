@@ -96,6 +96,8 @@ Las variables soportadas son:
 | `ANTHROPIC_API_KEY` | vacío | API key para Anthropic |
 | `LLM_PROVIDER` | `openai` | Proveedor: `openai` o `anthropic` |
 | `LLM_MODEL` | `gpt-5-mini` | Modelo utilizado por el proveedor |
+| `MODERATION_ENABLED` | `true` | Activa moderación de entrada y salida con OpenAI |
+| `MODERATION_MODEL` | `omni-moderation-latest` | Modelo de moderación de OpenAI |
 | `PROMPT_VERSION` | `v3` | Prompt congelado: `v1`, `v2` o `v3` |
 | `MAX_RETRIES` | `2` | Reintentos ante JSON o salida inválida |
 | `MAX_INPUT_CHARS` | `4000` | Longitud máxima de la consulta |
@@ -157,18 +159,20 @@ La hipótesis de trabajo era que agregar definiciones, ejemplos y reglas de segu
 
 ## Seguridad y robustez
 
-Actualmente se implementan estas capas locales:
+Actualmente se implementan estas capas:
 
 - detección de patrones conocidos de prompt injection, jailbreak y exfiltración;
+- moderación de entrada con OpenAI Moderation API cuando `MODERATION_ENABLED=true`;
 - límite de longitud de entrada;
 - instrucción en `v3` para tratar el ticket como dato no confiable;
 - parseo JSON y validación estricta con Pydantic;
 - bloqueo de respuestas que intenten revelar API keys, system prompts o developer messages;
+- moderación de la respuesta y de las acciones sugeridas con OpenAI Moderation API;
 - reintentos configurables ante respuestas inválidas.
 
 Los 10 casos adversariales están en `evals/adversarial.jsonl` y se verifican con `evals/test_triage.py`.
 
-> La Moderation API de OpenAI todavía no está integrada. El guardrail actual es local y está basado en reglas; incorporar moderación del proveedor es una mejora pendiente para cubrir completamente la alternativa propuesta en la consigna.
+La detección local se ejecuta siempre. La moderación de OpenAI se puede desactivar en entornos sin una clave OpenAI estableciendo `MODERATION_ENABLED=false`. Cuando está activa, requiere `OPENAI_API_KEY`, incluso si el proveedor principal configurado es Anthropic.
 
 ## Evaluación
 
@@ -247,13 +251,12 @@ tests/          Tests unitarios, de integración y de evaluación
 | Suite adversarial de 10 casos | Implementado |
 | Score global y por categoria | Implementado y documentado para `v1`, `v2` y `v3` |
 | Comparación automática V1/V2/V3 | Implementado con `--compare` y salida JSON |
-| Moderación de proveedor | Opcional; hoy hay reglas locales |
+| Moderación de proveedor | Implementado con OpenAI Moderation API, configurable |
 | LLM-as-judge | Opcional y pendiente |
 
 ## Próximos pasos para la entrega final
 
 1. Implementar LLM-as-judge para evaluar `answer` y `actions` en los casos clasificados correctamente, manteniendo exact match para `category`.
-2. Agregar la Moderation API como segunda capa cuando el proveedor sea compatible, si se desea reforzar la cobertura de contenido dañino.
 
 ## Limitaciones
 
