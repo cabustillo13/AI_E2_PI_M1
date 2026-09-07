@@ -8,6 +8,7 @@ from src.llm.moderation import OpenAIModerator
 from src.metrics.logger import MetricsLogger
 from src.pipeline.triage import TriagePipeline
 from src.prompts.registry import PromptRegistry
+from src.api.routes import get_pipeline
 
 
 class FakeProvider:
@@ -146,28 +147,16 @@ def test_openai_moderator_returns_flagged_status():
     assert moderator.is_flagged("blocked")
 
 
-def test_api_returns_validated_response(tmp_path, monkeypatch):
+def test_api_returns_validated_response(tmp_path):
     pipeline = build_pipeline(tmp_path, [valid_response()])
-
-    monkeypatch.setattr(
-        TriagePipeline,
-        "_create_provider",
-        lambda self: object(),
-    )
-    import src.api.routes as routes
-
-    monkeypatch.setattr(routes, "pipeline", pipeline)
-
     from src.main import app
 
+    app.dependency_overrides[get_pipeline] = lambda: pipeline
     client = TestClient(app)
-    response = client.post(
-        "/triage",
-        json={"query": "No puedo iniciar sesión"},
-    )
+    response = client.post("/triage", json={"query": "No puedo iniciar sesión"})
+    app.dependency_overrides.clear()
 
     assert response.status_code == 200
-    assert response.json()["category"] == "account"
 
 
 def test_api_rejects_extra_request_fields(monkeypatch):

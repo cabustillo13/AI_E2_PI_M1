@@ -231,6 +231,7 @@ src/
 	models/       Modelos de request y response
 	pipeline/     Guardrails, retry y triage
 	prompts/      Loader y registry de prompts
+    pricing.py    Tabla de precios por proveedor/modelo (USD por 1M tokens)
 prompts/        Versiones YAML del prompt
 evals/          Dataset, casos adversariales y runner
 tests/          Tests unitarios, de integración y de evaluación
@@ -252,7 +253,7 @@ tests/          Tests unitarios, de integración y de evaluación
 | Score global y por categoria | Implementado y documentado para `v1`, `v2` y `v3` |
 | Comparación automática V1/V2/V3 | Implementado con `--compare` y salida JSON |
 | Moderación de proveedor | Implementado con OpenAI Moderation API, configurable |
-| LLM-as-judge | Opcional y pendiente |
+| LLM-as-judge | Opcional |
 
 ## Próximos pasos para la entrega final
 

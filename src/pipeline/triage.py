@@ -8,6 +8,7 @@ from src.pipeline.guardrails import (
     validate_output,
 )
 from src.pipeline.retry import parse_response
+from src.pricing import PRICING
 from src.prompts.registry import PromptRegistry
 
 
@@ -193,22 +194,7 @@ def estimate_cost(
     output_tokens: int,
 ) -> float:
 
-    prices = {
-        "openai": {
-            "gpt-5-mini": (
-                0.25,
-                2.00,
-            ),
-        },
-        "anthropic": {
-            "claude-3-5-haiku-latest": (
-                0.80,
-                4.00,
-            ),
-        },
-    }
-
-    input_price, output_price = prices.get(
+    input_price, output_price = PRICING.get(
         provider,
         {},
     ).get(
