@@ -5,6 +5,7 @@ INJECTION_PATTERNS = [
     r"ignore (all )?(previous|prior) instructions",
     r"reveal (your|the) (system prompt|instructions)",
     r"show (me )?(your|the) system prompt",
+    r"(reveal|show|print).*(system prompt|internal instructions|hidden instructions|api key)",
     r"developer message",
     r"jailbreak",
     r"act as (an? )?(administrator|developer|system)",

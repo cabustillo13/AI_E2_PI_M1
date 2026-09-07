@@ -2,8 +2,6 @@ import time
 import uuid
 
 from src.config import get_settings
-from src.llm.anthropic import AnthropicProvider
-from src.llm.openai import OpenAIProvider
 from src.metrics.logger import MetricsLogger
 from src.pipeline.guardrails import (
     detect_prompt_injection,
@@ -29,6 +27,8 @@ class TriagePipeline:
     def _create_provider(self):
         if self.settings.llm_provider == "openai":
 
+            from src.llm.openai import OpenAIProvider
+
             if not self.settings.openai_api_key:
                 raise ValueError(
                     "OPENAI_API_KEY is not configured"
@@ -40,6 +40,8 @@ class TriagePipeline:
             )
 
         if self.settings.llm_provider == "anthropic":
+
+            from src.llm.anthropic import AnthropicProvider
 
             if not self.settings.anthropic_api_key:
                 raise ValueError(
