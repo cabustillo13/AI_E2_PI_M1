@@ -1,0 +1,51 @@
+import json
+from pathlib import Path
+
+from ticketflow.pipeline.guardrails import (
+    detect_prompt_injection,
+)
+
+
+def load_jsonl(path: str) -> list[dict]:
+    return [
+        json.loads(line)
+        for line in Path(path)
+        .read_text(
+            encoding="utf-8"
+        )
+        .splitlines()
+        if line
+    ]
+
+
+def test_dataset_has_required_categories():
+    cases = load_jsonl(
+        "evals/dataset.jsonl"
+    )
+
+    categories = {
+        case["expected_category"]
+        for case in cases
+    }
+
+    assert categories == {
+        "billing",
+        "technical",
+        "account",
+        "other",
+    }
+
+
+def test_adversarial_cases_are_detected():
+    cases = load_jsonl(
+        "evals/adversarial.jsonl"
+    )
+
+    assert len(cases) >= 10
+
+    assert all(
+        detect_prompt_injection(
+            case["query"]
+        )
+        for case in cases
+    )

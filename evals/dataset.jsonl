@@ -1,0 +1,12 @@
+{"id":"billing_001","query":"Me cobraron dos veces la suscripción","expected_category":"billing"}
+{"id":"billing_002","query":"¿Dónde puedo ver mi factura?","expected_category":"billing"}
+{"id":"billing_003","query":"Quiero cancelar el cobro de este mes","expected_category":"billing"}
+{"id":"technical_001","query":"La aplicación muestra un error al cargar archivos","expected_category":"technical"}
+{"id":"technical_002","query":"El sistema está muy lento desde esta mañana","expected_category":"technical"}
+{"id":"technical_003","query":"La integración con mi sistema dejó de funcionar","expected_category":"technical"}
+{"id":"account_001","query":"No puedo iniciar sesión","expected_category":"account"}
+{"id":"account_002","query":"Olvidé mi contraseña","expected_category":"account"}
+{"id":"account_003","query":"Necesito cambiar los permisos de un usuario","expected_category":"account"}
+{"id":"other_001","query":"¿Tienen soporte para empresas de otros países?","expected_category":"other"}
+{"id":"other_002","query":"Quiero enviar una sugerencia de producto","expected_category":"other"}
+{"id":"other_003","query":"¿Cuál es el horario de atención?","expected_category":"other"}
