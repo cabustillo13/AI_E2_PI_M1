@@ -22,18 +22,42 @@ El proyecto busca cumplir los objetivos de las cinco clases del módulo:
 ## Arquitectura
 
 ```text
-FastAPI
-	-> validación de request
-	-> guardrail de entrada (longitud + prompt injection)
-	-> registro de prompts YAML
-	-> proveedor LLM (OpenAI o Anthropic)
-	-> parseo JSON + validación Pydantic
-	-> retry ante respuesta inválida
-	-> guardrail de salida
-	-> métricas JSONL
+									  TICKETFLOW
+										  │
+							┌─────────────┼──────────────┐
+							│             │              │
+							▼             ▼              ▼
+						  FastAPI       Guardrails      Metrics
+							│             │              │
+							└───────┬─────┘              ▼
+								   ▼             data/metrics.jsonl
+							 Context Engineering
+								   │
+							  V1 / V2 / V3
+								   │
+								   ▼
+							┌───────────────┐
+							│  LLM Provider │
+							├───────────────┤
+							│    OpenAI     │
+							│   Anthropic   │
+							└───────┬───────┘
+								   ▼
+							 Structured Output
+								   │
+							   Pydantic
+								   │
+								 Retry
+								   │
+								   ▼
+							    EVALUATION
+								   │
+						   ┌─────────┴────────┐
+						   ▼                  ▼
+					    Exact Match       LLM-as-Judge
 ```
 
-La implementación principal se encuentra en `src/pipeline/triage.py`. La API está expuesta por `src/api/routes.py` y el contrato de respuesta por `src/models/response.py`.
+La implementación principal se encuentra en `src/pipeline/triage.py`. La API está expuesta por `src/api/routes.py`, el contrato de respuesta por `src/models/response.py` y el runner de evaluación por `evals/runner.py`. `Metrics` registra cada request procesado en JSONL; la evaluación consume las respuestas del pipeline. `Exact Match` está implementado y `LLM-as-Judge` queda como evaluación opcional pendiente.
 
 ## Requisitos
 
