@@ -153,7 +153,7 @@ Los prompts viven en `prompts/` y se seleccionan mediante `PROMPT_VERSION`; no e
 - `v2`: definiciones de categorías y ejemplos few-shot.
 - `v3`: definiciones, regla de decisión, instrucciones de seguridad, contrato estricto y ejemplos few-shot.
 
-La hipótesis de trabajo es que agregar definiciones, ejemplos y reglas de seguridad mejora la clasificación y reduce respuestas inseguras. Esta hipótesis debe validarse con el dataset congelado, no mediante la inspección de unos pocos tickets.
+La hipótesis de trabajo era que agregar definiciones, ejemplos y reglas de seguridad mejora la clasificación y reduce respuestas inseguras. La comparación sobre el mismo dataset congelado confirma una mejora progresiva de la clasificación: `v1` obtiene 91.67%, `v2` 94.44% y `v3` 97.22%. Por lo tanto, `v3` queda como versión recomendada para la configuración predeterminada.
 
 ## Seguridad y robustez
 
@@ -172,19 +172,37 @@ Los 10 casos adversariales están en `evals/adversarial.jsonl` y se verifican co
 
 ## Evaluación
 
-El dataset actual contiene 12 casos normales, distribuidos entre las cuatro categorías, y la suite adversarial contiene 10 casos. El runner mide exact match de `category`, con score global y score por categoría:
+El dataset contiene 36 casos normales, distribuidos de forma equilibrada entre las cuatro categorías, y la suite adversarial contiene 10 casos. El runner mide exact match de `category`, con score global y score por categoría:
 
 ```bash
 python -m evals.runner
 ```
 
-La corrida utiliza el proveedor, modelo y versión indicados en `.env`. Por lo tanto, para comparar `v1`, `v2` y `v3` hay que ejecutar el runner con cada `PROMPT_VERSION` y conservar los resultados de forma separada. El runner actual no genera todavía una tabla comparativa automática ni evalúa la calidad de `answer` con LLM-as-judge.
+La corrida utiliza el proveedor y modelo indicados en `.env`, y la versión indicada por `PROMPT_VERSION`. Para comparar las tres versiones sobre exactamente el mismo dataset:
+
+```bash
+python -m evals.runner --compare --output evals/results.json
+```
+
+El modo `--compare` congela el dataset y ejecuta `v1`, `v2` y `v3` en una única corrida. El archivo JSON conserva el score global y el score por categoría de cada versión. También se puede evaluar una sola versión con `--prompt-version v3`.
+
+Resultados obtenidos con OpenAI `gpt-5-mini`, 36 casos y el dataset congelado:
+
+| Prompt | Global | Account | Billing | Other | Technical |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `v1` | 91.67% | 100.00% | 100.00% | 66.67% | 100.00% |
+| `v2` | 94.44% | 100.00% | 100.00% | 77.78% | 100.00% |
+| `v3` | **97.22%** | 100.00% | 100.00% | **88.89%** | 100.00% |
+
+La mejora absoluta de `v1` a `v3` es de 5.55 puntos porcentuales. El avance se concentra en `other`, la categoría más ambigua: sube de 66.67% a 88.89%. Las categorías `account`, `billing` y `technical` mantienen 100.00% en las tres versiones. Estos resultados justifican el uso de definiciones, reglas de decisión y ejemplos few-shot incorporados en `v3`.
 
 Para ejecutar las pruebas automatizadas:
 
 ```bash
 pytest
 ```
+
+La suite incluye pruebas unitarias y de integración para retry, guardrail de salida, métricas, validación HTTP y rechazo de campos adicionales.
 
 ## Métricas
 
@@ -225,21 +243,18 @@ tests/          Tests unitarios
 | Retry ante respuesta inválida | Implementado y configurable |
 | Prompts versionados fuera del código | Implementado: `v1`, `v2`, `v3` |
 | Tokens, latencia y costo por request | Implementado en JSONL |
-| Dataset etiquetado de al menos 30 casos | Pendiente: actualmente hay 12 casos normales |
+| Dataset etiquetado de al menos 30 casos | Implementado: 36 casos normales, 9 por categoría |
 | Suite adversarial de 10 casos | Implementado |
-| Score global y por categoria | Implementado para una version por corrida |
-| Comparación automática V1/V2/V3 | Pendiente |
+| Score global y por categoria | Implementado y documentado para `v1`, `v2` y `v3` |
+| Comparación automática V1/V2/V3 | Implementado con `--compare` y salida JSON |
 | Moderación de proveedor | Pendiente; hoy hay reglas locales |
 | LLM-as-judge | Opcional y pendiente |
 
 ## Próximos pasos para la entrega final
 
-1. Ampliar el dataset normal a 30 casos como mínimo, idealmente con casos ambiguos y una distribución equilibrada.
-2. Automatizar la comparación de `v1`, `v2` y `v3` en una única corrida reproducible.
-3. Publicar en este README la tabla de accuracy global y por categoría obtenida con el dataset congelado.
-4. Agregar la Moderation API como segunda capa cuando el proveedor sea compatible, manteniendo el guardrail local.
-5. Evaluar `answer` con LLM-as-judge solamente como métricas complementarias o extra credit.
+1. Agregar la Moderation API como segunda capa cuando el proveedor sea compatible, manteniendo el guardrail local.
+2. Evaluar `answer` con LLM-as-judge solamente como métrica complementaria o extra credit.
 
 ## Limitaciones
 
-Los resultados dependen del proveedor, modelo, prompt y precios configurados. El dataset actual es inicial y no alcanza todavía el mínimo de 30 casos normales solicitado por la consigna. Por ese motivo, este README documenta el estado verificable del repositorio y no presenta resultados de evaluación que aún no hayan sido medidos.
+Los resultados dependen del proveedor, modelo, prompt y precios configurados. La comparación debe ejecutarse con las mismas credenciales, modelo y dataset para que sea interpretable. `evals/results.json` es un artefacto local de la corrida y no contiene secretos.

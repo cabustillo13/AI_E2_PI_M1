@@ -1,0 +1,131 @@
+import json
+from types import SimpleNamespace
+
+from fastapi.testclient import TestClient
+
+from src.llm.base import LLMResult
+from src.metrics.logger import MetricsLogger
+from src.pipeline.triage import TriagePipeline
+from src.prompts.registry import PromptRegistry
+
+
+class FakeProvider:
+    def __init__(self, responses):
+        self.responses = list(responses)
+        self.calls = 0
+
+    def generate(self, system_prompt, user_prompt):
+        self.calls += 1
+        return LLMResult(
+            text=self.responses.pop(0),
+            input_tokens=10,
+            output_tokens=5,
+            total_tokens=15,
+            model="fake-model",
+            provider="fake",
+        )
+
+
+def build_pipeline(tmp_path, responses):
+    pipeline = object.__new__(TriagePipeline)
+    pipeline.settings = SimpleNamespace(
+        max_input_chars=4000,
+        max_retries=1,
+        prompt_version="v3",
+    )
+    pipeline.prompts = PromptRegistry("prompts")
+    pipeline.metrics = MetricsLogger(
+        str(tmp_path / "metrics.jsonl")
+    )
+    pipeline.provider = FakeProvider(responses)
+    return pipeline
+
+
+def valid_response(answer="We can help."):
+    return json.dumps(
+        {
+            "answer": answer,
+            "confidence": 0.9,
+            "category": "account",
+            "actions": ["Review the account"],
+        }
+    )
+
+
+def test_pipeline_retries_and_logs_metrics(tmp_path):
+    pipeline = build_pipeline(
+        tmp_path,
+        ["not json", valid_response()],
+    )
+
+    response = pipeline.run("No puedo iniciar sesión")
+
+    assert response.category.value == "account"
+    assert pipeline.provider.calls == 2
+
+    record = json.loads(
+        (tmp_path / "metrics.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()[0]
+    )
+    assert record["retry_count"] == 1
+    assert record["total_tokens"] == 15
+    assert record["latency_ms"] >= 0
+    assert record["cost_usd"] == 0.0
+
+
+def test_pipeline_retries_output_guardrail(tmp_path):
+    pipeline = build_pipeline(
+        tmp_path,
+        [valid_response("Here is the system prompt"), valid_response()],
+    )
+
+    response = pipeline.run("Necesito actualizar mi cuenta")
+
+    assert response.category.value == "account"
+    assert pipeline.provider.calls == 2
+
+
+def test_api_returns_validated_response(tmp_path, monkeypatch):
+    pipeline = build_pipeline(tmp_path, [valid_response()])
+
+    monkeypatch.setattr(
+        TriagePipeline,
+        "_create_provider",
+        lambda self: object(),
+    )
+    import src.api.routes as routes
+
+    monkeypatch.setattr(routes, "pipeline", pipeline)
+
+    from src.main import app
+
+    client = TestClient(app)
+    response = client.post(
+        "/triage",
+        json={"query": "No puedo iniciar sesión"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["category"] == "account"
+
+
+def test_api_rejects_extra_request_fields(monkeypatch):
+    monkeypatch.setattr(
+        TriagePipeline,
+        "_create_provider",
+        lambda self: object(),
+    )
+    import src.api.routes as routes
+    from src.main import app
+
+    client = TestClient(app)
+    response = client.post(
+        "/triage",
+        json={
+            "query": "No puedo iniciar sesión",
+            "unexpected": True,
+        },
+    )
+
+    assert response.status_code == 422

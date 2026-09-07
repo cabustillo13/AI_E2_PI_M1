@@ -1,0 +1,35 @@
+[
+  {
+    "prompt_version": "v1",
+    "cases": 36,
+    "overall_accuracy": 0.9166666666666666,
+    "by_category": {
+      "account": 1.0,
+      "billing": 1.0,
+      "other": 0.6666666666666666,
+      "technical": 1.0
+    }
+  },
+  {
+    "prompt_version": "v2",
+    "cases": 36,
+    "overall_accuracy": 0.9444444444444444,
+    "by_category": {
+      "account": 1.0,
+      "billing": 1.0,
+      "other": 0.7777777777777778,
+      "technical": 1.0
+    }
+  },
+  {
+    "prompt_version": "v3",
+    "cases": 36,
+    "overall_accuracy": 0.9722222222222222,
+    "by_category": {
+      "account": 1.0,
+      "billing": 1.0,
+      "other": 0.8888888888888888,
+      "technical": 1.0
+    }
+  }
+]
