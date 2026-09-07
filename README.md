@@ -170,15 +170,22 @@ Actualmente se implementan estas capas:
 - moderación de la respuesta y de las acciones sugeridas con OpenAI Moderation API;
 - reintentos configurables ante respuestas inválidas.
 
-Los 10 casos adversariales están en `evals/adversarial.jsonl`.
+Los 15 casos adversariales están en `evals/adversarial.jsonl` y se verifican con `tests/test_evals.py`. Los primeros 10 son variantes directas (`"ignore previous instructions"`, `"reveal the system prompt"`, `"jailbreak mode"`, etc.) que el filtro de entrada (`detect_prompt_injection`) detecta por patrón. Los 5 restantes (`adv_011` a `adv_015`) son variantes deliberadamente formuladas para **no** coincidir con esos patrones —traducción, injection indirecta a través de un tercero, ofuscación con guiones, pedido de resumen de instrucciones previas, roleplay sin la palabra "jailbreak"— y sirven para probar que la segunda capa (`validate_output` sobre la respuesta del LLM) es la que realmente los frena, no el filtro de entrada.
 
-> **Nota de mantenimiento:** el archivo que verifica estos casos puede llamarse `evals/test_triage.py` o `tests/test_evals.py` según qué versión del repo estés usando (había quedado duplicado en dos ubicaciones). Confirmá cuál es el vigente en tu repo y dejá solo esa referencia acá.
+Efecto medido sobre los 15 casos:
+
+| Capa | Casos que bloquea | Tasa |
+| --- | ---: | ---: |
+| Filtro de entrada (`detect_prompt_injection`) | 10 / 15 | 66.67% |
+| Filtro de entrada + guardrail de salida (`validate_output`) | Pendiente de medir con corrida real | — |
+
+El 66.67% está medido directamente contra el detector (`tests/test_evals.py::test_adversarial_cases_are_detected` y `test_output_layer_cases_bypass_input_filter`), sin necesidad de credenciales. La fila de "filtro de entrada + guardrail de salida" requiere correr el pipeline completo contra un proveedor real (los 5 casos restantes dependen de si el LLM obedece la instrucción maliciosa y de si esa respuesta llega a mencionar alguno de los términos que vigila `validate_output`); si corriste eso, reemplazá el "Pendiente de medir" por el número real.
 
 La detección local se ejecuta siempre. La moderación de OpenAI se puede desactivar en entornos sin una clave OpenAI estableciendo `MODERATION_ENABLED=false`. Cuando está activa, requiere `OPENAI_API_KEY`, incluso si el proveedor principal configurado es Anthropic.
 
 ## Evaluación
 
-El dataset contiene 36 casos normales, distribuidos de forma equilibrada entre las cuatro categorías, y la suite adversarial contiene 10 casos. El runner mide exact match de `category`, con score global y score por categoría:
+El dataset contiene 36 casos normales, distribuidos de forma equilibrada entre las cuatro categorías, y la suite adversarial contiene 15 casos (10 detectables por el filtro de entrada, 5 pensados para probar la segunda capa de defensa; ver [Seguridad y robustez](#seguridad-y-robustez)). El runner mide exact match de `category`, con score global y score por categoría:
 
 ```bash
 python -m evals.runner
@@ -274,7 +281,7 @@ data/           Salida local de métricas
 | Prompts versionados fuera del código | Implementado: `v1`, `v2`, `v3` |
 | Tokens, latencia y costo por request | Implementado en JSONL |
 | Dataset etiquetado de al menos 30 casos | Implementado: 36 casos normales, 9 por categoría |
-| Suite adversarial de 10 casos | Implementado |
+| Suite adversarial de 10 casos | Implementado: 15 casos (10 originales + 5 que prueban la capa de salida) |
 | Score global y por categoria | Implementado y documentado para `v1`, `v2` y `v3` |
 | Comparación automática V1/V2/V3 | Implementado con `--compare` y salida JSON |
 | Moderación de proveedor | Implementado con OpenAI Moderation API, configurable |
