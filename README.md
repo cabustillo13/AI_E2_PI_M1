@@ -228,8 +228,8 @@ src/
 	pipeline/     Guardrails, retry y triage
 	prompts/      Loader y registry de prompts
 prompts/        Versiones YAML del prompt
-evals/          Dataset, casos adversariales, runner y tests
-tests/          Tests unitarios
+evals/          Dataset, casos adversariales y runner
+tests/          Tests unitarios, de integración y de evaluación
 	data/           Salida local de métricas
 ```
 
@@ -247,13 +247,13 @@ tests/          Tests unitarios
 | Suite adversarial de 10 casos | Implementado |
 | Score global y por categoria | Implementado y documentado para `v1`, `v2` y `v3` |
 | Comparación automática V1/V2/V3 | Implementado con `--compare` y salida JSON |
-| Moderación de proveedor | Pendiente; hoy hay reglas locales |
+| Moderación de proveedor | Opcional; hoy hay reglas locales |
 | LLM-as-judge | Opcional y pendiente |
 
 ## Próximos pasos para la entrega final
 
-1. Agregar la Moderation API como segunda capa cuando el proveedor sea compatible, manteniendo el guardrail local.
-2. Evaluar `answer` con LLM-as-judge solamente como métrica complementaria o extra credit.
+1. Implementar LLM-as-judge para evaluar `answer` y `actions` en los casos clasificados correctamente, manteniendo exact match para `category`.
+2. Agregar la Moderation API como segunda capa cuando el proveedor sea compatible, si se desea reforzar la cobertura de contenido dañino.
 
 ## Limitaciones
 
