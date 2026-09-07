@@ -57,7 +57,7 @@ El proyecto busca cumplir los objetivos de las cinco clases del módulo:
 					    Exact Match       LLM-as-Judge
 ```
 
-La implementación principal se encuentra en `src/pipeline/triage.py`. La API está expuesta por `src/api/routes.py`, el contrato de respuesta por `src/models/response.py` y el runner de evaluación por `evals/runner.py`. `Metrics` registra cada request procesado en JSONL; la evaluación consume las respuestas del pipeline. `Exact Match` está implementado y `LLM-as-Judge` queda como evaluación opcional pendiente.
+La implementación principal se encuentra en `src/pipeline/triage.py`. La API está expuesta por `src/api/routes.py`, el contrato de respuesta por `src/models/response.py` y el runner de evaluación por `evals/runner.py`. `Metrics` registra cada request procesado en JSONL; la evaluación consume las respuestas del pipeline. `Exact Match` evalúa `category` y corre siempre; `LLM-as-Judge` (`src/pipeline/judge.py`) evalúa `answer` y `actions` sobre los casos con categoría correcta, y es opcional vía el flag `--judge` para no sumar costo en corridas donde solo interesa la clasificación.
 
 ## Requisitos
 
@@ -155,7 +155,7 @@ Los prompts viven en `prompts/` y se seleccionan mediante `PROMPT_VERSION`; no e
 - `v2`: definiciones de categorías y ejemplos few-shot.
 - `v3`: definiciones, regla de decisión, instrucciones de seguridad, contrato estricto y ejemplos few-shot.
 
-La hipótesis de trabajo era que agregar definiciones, ejemplos y reglas de seguridad mejora la clasificación y reduce respuestas inseguras. La comparación sobre el mismo dataset congelado confirma una mejora progresiva de la clasificación: `v1` obtiene 91.67%, `v2` 94.44% y `v3` 97.22%. Por lo tanto, `v3` queda como versión recomendada para la configuración predeterminada.
+La hipótesis de trabajo era que agregar definiciones, ejemplos y reglas de seguridad mejora la clasificación y reduce respuestas inseguras. La comparación sobre el mismo dataset congelado (ver [Evaluación](#evaluación)) confirma esa hipótesis, aunque con un matiz: la mejora en la clasificación (`category`) entre versiones es modesta, mientras que la mejora en la calidad de la respuesta y las acciones —medida con LLM-as-judge— es mucho más marcada. `v3` queda como versión recomendada para la configuración predeterminada.
 
 ## Seguridad y robustez
 
@@ -170,7 +170,9 @@ Actualmente se implementan estas capas:
 - moderación de la respuesta y de las acciones sugeridas con OpenAI Moderation API;
 - reintentos configurables ante respuestas inválidas.
 
-Los 10 casos adversariales están en `evals/adversarial.jsonl` y se verifican con `evals/test_triage.py`.
+Los 10 casos adversariales están en `evals/adversarial.jsonl`.
+
+> **Nota de mantenimiento:** el archivo que verifica estos casos puede llamarse `evals/test_triage.py` o `tests/test_evals.py` según qué versión del repo estés usando (había quedado duplicado en dos ubicaciones). Confirmá cuál es el vigente en tu repo y dejá solo esa referencia acá.
 
 La detección local se ejecuta siempre. La moderación de OpenAI se puede desactivar en entornos sin una clave OpenAI estableciendo `MODERATION_ENABLED=false`. Cuando está activa, requiere `OPENAI_API_KEY`, incluso si el proveedor principal configurado es Anthropic.
 
@@ -190,15 +192,38 @@ python -m evals.runner --compare --output evals/results.json
 
 El modo `--compare` congela el dataset y ejecuta `v1`, `v2` y `v3` en una única corrida. El archivo JSON conserva el score global y el score por categoría de cada versión. También se puede evaluar una sola versión con `--prompt-version v3`.
 
+### LLM-as-judge
+
+Además del exact match de `category`, el runner soporta LLM-as-judge para evaluar la calidad de `answer` y `actions` sobre los casos donde la categoría se clasificó correctamente — si la categoría está mal, no tiene sentido puntuar una respuesta armada para la categoría equivocada. Es un paso opcional (`--judge`) porque implica llamadas extra al LLM y por lo tanto costo adicional:
+
+```bash
+python -m evals.runner --judge
+python -m evals.runner --compare --judge --output evals/results.json
+```
+
+El juez usa el mismo proveedor y modelo configurados en `.env` (no uno separado, para no sumar complejidad) y su prompt está versionado en `prompts/judge_v1.yaml`, igual que los prompts de triage. Devuelve `score` (0 a 1), `verdict` (`pass` si `score >= 0.6`) y una justificación breve. A diferencia del pipeline de triage, el juez no reintenta ante una respuesta no parseable: si el JSON viene inválido, el caso se registra directamente como `fail` con `score = 0`, porque es una herramienta de evaluación offline y no un endpoint de cara al usuario.
+
 Resultados obtenidos con OpenAI `gpt-5-mini`, 36 casos y el dataset congelado:
+
+**Clasificación (exact match de `category`):**
 
 | Prompt | Global | Account | Billing | Other | Technical |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| `v1` | 91.67% | 100.00% | 100.00% | 66.67% | 100.00% |
-| `v2` | 94.44% | 100.00% | 100.00% | 77.78% | 100.00% |
-| `v3` | **97.22%** | 100.00% | 100.00% | **88.89%** | 100.00% |
+| `v1` | 91.67% | 88.89% | 100.00% | 77.78% | 100.00% |
+| `v2` | 91.67% | 88.89% | 100.00% | 77.78% | 100.00% |
+| `v3` | **94.44%** | 88.89% | 100.00% | **88.89%** | 100.00% |
 
-La mejora absoluta de `v1` a `v3` es de 5.55 puntos porcentuales. El avance se concentra en `other`, la categoría más ambigua: sube de 66.67% a 88.89%. Las categorías `account`, `billing` y `technical` mantienen 100.00% en las tres versiones. Estos resultados justifican el uso de definiciones, reglas de decisión y ejemplos few-shot incorporados en `v3`.
+**Calidad de respuesta y acciones (LLM-as-judge, solo sobre los casos con categoría correcta):**
+
+| Prompt | Casos juzgados | Score promedio | Pass rate |
+| --- | ---: | ---: | ---: |
+| `v1` | 33 | 0.64 | 54.55% |
+| `v2` | 33 | 0.76 | 84.85% |
+| `v3` | 34 | **0.95** | **100.00%** |
+
+La mejora en clasificación de `v1` a `v3` es de 2.77 puntos porcentuales, concentrada en `other` (la categoría más ambigua, 77.78% → 88.89%); `account`, `billing` y `technical` se mantienen estables entre versiones. El salto más importante ocurre en la calidad medida por el juez: el score promedio pasa de 0.64 a 0.95 y el pass rate de 54.55% a 100.00%. Esto sugiere que las instrucciones de seguridad, la regla de decisión y los ejemplos few-shot agregados en `v3` impactan más en la calidad de lo que se le devuelve al agente humano que en la categoría en sí — algo que el exact match de `category` no puede capturar por sí solo, y que justifica tener las dos técnicas de evaluación en paralelo.
+
+> **Nota sobre determinismo:** estos números pueden variar levemente entre corridas porque el modelo no es 100% determinista (en `account`, por ejemplo, se observó 100% en una corrida anterior y 88.89% en esta, de forma pareja en las tres versiones de prompt — un indicio de que el cambio viene del sampling del modelo y no del prompt). Para resultados más estables, conviene bajar la temperatura del modelo de clasificación o correr cada versión varias veces y reportar el promedio.
 
 Para ejecutar las pruebas automatizadas:
 
@@ -206,7 +231,7 @@ Para ejecutar las pruebas automatizadas:
 pytest
 ```
 
-La suite incluye pruebas unitarias y de integración para retry, guardrail de salida, métricas, validación HTTP y rechazo de campos adicionales.
+La suite incluye pruebas unitarias y de integración para retry, guardrail de salida, métricas, validación HTTP, rechazo de campos adicionales y el parseo del veredicto de LLM-as-judge.
 
 ## Métricas
 
@@ -219,7 +244,7 @@ Cada request procesado agrega una línea a `data/metrics.jsonl` con:
 - cantidad de reintentos;
 - costo estimado en USD.
 
-El costo se calcula con la tabla de precios definida en `src/pipeline/triage.py`. Debe revisarse antes de una ejecución real si cambian los modelos o sus precios.
+El costo se calcula con la tabla de precios en `src/pricing.py`. Debe revisarse ese archivo antes de una ejecución real si cambian los modelos o sus precios.
 
 ## Estructura del repositorio
 
@@ -228,14 +253,14 @@ src/
 	api/          Endpoints FastAPI
 	llm/          Adaptadores OpenAI y Anthropic
 	metrics/      Logger estructurado JSONL
-	models/       Modelos de request y response
-	pipeline/     Guardrails, retry y triage
+	models/       Modelos de request, response y veredicto del juez
+	pipeline/     Guardrails, retry, triage y LLM-as-judge
 	prompts/      Loader y registry de prompts
-    pricing.py    Tabla de precios por proveedor/modelo (USD por 1M tokens)
-prompts/        Versiones YAML del prompt
+	pricing.py    Tabla de precios por proveedor/modelo (USD por 1M tokens)
+prompts/        Versiones YAML del prompt de triage y del juez
 evals/          Dataset, casos adversariales y runner
 tests/          Tests unitarios, de integración y de evaluación
-	data/           Salida local de métricas
+data/           Salida local de métricas
 ```
 
 ## Estado frente a la consigna
@@ -253,8 +278,8 @@ tests/          Tests unitarios, de integración y de evaluación
 | Score global y por categoria | Implementado y documentado para `v1`, `v2` y `v3` |
 | Comparación automática V1/V2/V3 | Implementado con `--compare` y salida JSON |
 | Moderación de proveedor | Implementado con OpenAI Moderation API, configurable |
-| LLM-as-judge | Implementado |
+| LLM-as-judge | Implementado, opcional vía `--judge` |
 
 ## Limitaciones
 
-Los resultados dependen del proveedor, modelo, prompt y precios configurados. La comparación debe ejecutarse con las mismas credenciales, modelo y dataset para que sea interpretable. `evals/results.json` es un artefacto local de la corrida y no contiene secretos.
+Los resultados dependen del proveedor, modelo, prompt y precios configurados. La comparación debe ejecutarse con las mismas credenciales, modelo y dataset para que sea interpretable. Los scores no son perfectamente deterministas entre corridas (ver nota de determinismo en [Evaluación](#evaluación)); si se necesitan resultados reproducibles para publicar, conviene bajar la temperatura del modelo de clasificación o promediar varias corridas. `evals/results.json` es un artefacto local de la corrida y no contiene secretos.
