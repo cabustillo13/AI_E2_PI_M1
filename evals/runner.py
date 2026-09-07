@@ -1,8 +1,8 @@
 import json
 from collections import defaultdict
 
-from ticketflow.config import get_settings
-from ticketflow.pipeline.triage import TriagePipeline
+from src.config import get_settings
+from src.pipeline.triage import TriagePipeline
 
 
 def load_jsonl(path: str) -> list[dict]:

@@ -2,7 +2,7 @@ import json
 
 from pydantic import ValidationError
 
-from ticketflow.models.response import TriageResponse
+from src.models.response import TriageResponse
 
 
 def parse_response(text: str) -> TriageResponse:

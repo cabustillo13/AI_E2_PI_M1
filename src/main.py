@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from ticketflow.api.routes import router
+from src.api.routes import router
 
 
 app = FastAPI(

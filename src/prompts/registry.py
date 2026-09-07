@@ -1,4 +1,4 @@
-from ticketflow.prompts.loader import load_prompt
+from src.prompts.loader import load_prompt
 
 
 class PromptRegistry:

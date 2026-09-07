@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from ticketflow.models.response import (
+from src.models.response import (
     TriageResponse,
 )
 

@@ -1,4 +1,4 @@
-from ticketflow.prompts.loader import (
+from src.prompts.loader import (
     load_prompt,
 )
 

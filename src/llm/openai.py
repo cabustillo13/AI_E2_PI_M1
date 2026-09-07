@@ -1,6 +1,6 @@
 from openai import OpenAI
 
-from ticketflow.llm.base import LLMResult
+from src.llm.base import LLMResult
 
 
 class OpenAIProvider:

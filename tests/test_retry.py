@@ -1,6 +1,6 @@
 import pytest
 
-from ticketflow.pipeline.retry import (
+from src.pipeline.retry import (
     parse_response,
 )
 

@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException
 
-from ticketflow.models.request import TriageRequest
-from ticketflow.models.response import TriageResponse
-from ticketflow.pipeline.triage import TriagePipeline
+from src.models.request import TriageRequest
+from src.models.response import TriageResponse
+from src.pipeline.triage import TriagePipeline
 
 
 router = APIRouter()

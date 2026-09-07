@@ -1,6 +1,6 @@
 from anthropic import Anthropic
 
-from ticketflow.llm.base import LLMResult
+from src.llm.base import LLMResult
 
 
 class AnthropicProvider:

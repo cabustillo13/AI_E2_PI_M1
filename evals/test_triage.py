@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from ticketflow.pipeline.guardrails import (
+from src.pipeline.guardrails import (
     detect_prompt_injection,
 )
 

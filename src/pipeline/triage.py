@@ -1,16 +1,16 @@
 import time
 import uuid
 
-from ticketflow.config import get_settings
-from ticketflow.llm.anthropic import AnthropicProvider
-from ticketflow.llm.openai import OpenAIProvider
-from ticketflow.metrics.logger import MetricsLogger
-from ticketflow.pipeline.guardrails import (
+from src.config import get_settings
+from src.llm.anthropic import AnthropicProvider
+from src.llm.openai import OpenAIProvider
+from src.metrics.logger import MetricsLogger
+from src.pipeline.guardrails import (
     detect_prompt_injection,
     validate_output,
 )
-from ticketflow.pipeline.retry import parse_response
-from ticketflow.prompts.registry import PromptRegistry
+from src.pipeline.retry import parse_response
+from src.prompts.registry import PromptRegistry
 
 
 class TriagePipeline:
