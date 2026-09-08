@@ -7,7 +7,7 @@ Proyecto integrador del Módulo 1. Este servicio automatiza el primer nivel de s
 El proyecto está diseñado de forma minimalista para enfocar la complejidad en los prompts y las evaluaciones, no en la arquitectura:
 
 *   `prompts/`: Archivos YAML con las distintas versiones de tus system prompts.
-*   `evals/`: Tu laboratorio. Contiene el dataset de prueba (`dataset.jsonl`) y el script para evaluar tus prompts (`runner.py`).
+*   `evals/`: Tu laboratorio. Contiene el dataset de prueba (`dataset.jsonl`) y el script para evaluar tus prompts (`runner.py` y `runner_security.py`).
 *   `src/`: El código de producción.
     *   `models.py`: Contratos de datos (Pydantic).
     *   `llm_client.py`: Conexión con OpenAI/Anthropic forzando salidas JSON.
@@ -44,10 +44,17 @@ No adivines la calidad de tu prompt: **mídela**.
 3. Corre la suite de evaluaciones:
 
 ```bash
-python evals/runner.py
+python -m evals.runner
 ```
 
 4. Analiza los resultados. El prompt ganador es el que configurarás en `src/service.py`.
+
+5. Crea adversarial.jsonl ... (ME FALTA)
+6. Corre la suite de evaluaciones de seguridad:
+
+```bash
+python -m evals.runner_security
+```
 
 ## El Servicio API
 

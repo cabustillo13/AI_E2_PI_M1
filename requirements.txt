@@ -4,3 +4,4 @@ pydantic
 openai
 anthropic
 pyyaml
+python-dotenv

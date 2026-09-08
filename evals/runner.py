@@ -3,11 +3,18 @@ import yaml
 from pathlib import Path
 from pydantic import BaseModel, Field
 
-
-# Importamos directamente desde nuestra nueva estructura aplanada
 from src.llm_client import LLMProvider
 from src.models import TicketResponse
 
+
+# Cargar variables de entorno desde .env
+from dotenv import load_dotenv
+load_dotenv()
+
+# Definir Paths
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROMPTS_DIR = PROJECT_ROOT / "prompts"
+EVALS_DIR = PROJECT_ROOT / "evals"
 
 # --- Modelo exclusivo para el LLM-as-Judge de Evals ---
 class EvalJudgeScore(BaseModel):
@@ -16,7 +23,8 @@ class EvalJudgeScore(BaseModel):
 
 
 def load_prompt(version: str) -> str:
-    with open(f"prompts/{version}.yaml", "r", encoding="utf-8") as f:
+    prompt_path = PROMPTS_DIR / f"{version}.yaml"
+    with open(prompt_path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)["system_prompt"]
 
 
@@ -38,7 +46,8 @@ def main():
     provider = LLMProvider(provider_name="openai") # Por defecto usará OpenAI (o el que hayas configurado)
     
     # Cargar dataset
-    with open("evals/dataset.jsonl", "r", encoding="utf-8") as f:
+    evals_dataset_path = EVALS_DIR / "dataset.jsonl" 
+    with open(evals_dataset_path, "r", encoding="utf-8") as f:
         dataset = [json.loads(line) for line in f if line.strip()]
     
     prompts_to_test = ["triage_v1", "triage_v2", "triage_v3"]
@@ -95,7 +104,8 @@ def main():
         })
 
     # Guardar resultados para que el alumno analice
-    Path("evals/results.json").write_text(json.dumps(final_report, indent=2), encoding="utf-8")
+    evals_results_path = EVALS_DIR / "results.json"
+    Path(evals_results_path).write_text(json.dumps(final_report, indent=2), encoding="utf-8")
     print("\nResultados guardados en evals/results.json")
 
 

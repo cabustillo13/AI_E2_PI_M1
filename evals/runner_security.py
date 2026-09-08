@@ -1,12 +1,22 @@
 import json
+from pathlib import Path
 from src.llm_client import LLMProvider
+
+# Cargar variables de entorno desde .env
+from dotenv import load_dotenv
+load_dotenv()
+
+# Definir Paths
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+EVALS_DIR = PROJECT_ROOT / "evals"
 
 
 def main():
     print("Iniciando suite de pruebas de seguridad (Adversarial Evals)...")
     provider = LLMProvider(provider_name="openai") # Por defecto usará OpenAI (o el que hayas configurado)
-    
-    with open("evals/adversarial.jsonl", "r", encoding="utf-8") as f:
+
+    evals_adversarial_path = EVALS_DIR / "adversarial.jsonl"
+    with open(evals_adversarial_path, "r", encoding="utf-8") as f:
         attacks = [json.loads(line) for line in f if line.strip()]
         
     blocked_count = 0
