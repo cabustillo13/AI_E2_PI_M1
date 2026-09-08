@@ -9,7 +9,7 @@ def load_prompt(version: str) -> str:
     """Carga el system prompt desde un archivo YAML."""
     prompt_path = Path("prompts") / f"{version}.yaml"
     with open(prompt_path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f)["system_prompt"]
+        return yaml.safe_load(f)["system"]
 
 
 def process_ticket(request: TicketRequest, provider: LLMProvider) -> TicketResponse:
@@ -23,7 +23,7 @@ def process_ticket(request: TicketRequest, provider: LLMProvider) -> TicketRespo
         )
 
     # 2. CONTEXT ENGINEERING: Cargar el prompt ganador de las evals
-    system_prompt = load_prompt("triage_v3") 
+    system_prompt = load_prompt("triage_v3")
 
     # 3. GENERACIÓN: Llamada principal con salida estructurada
     response_data, metrics = provider.generate_structured(
