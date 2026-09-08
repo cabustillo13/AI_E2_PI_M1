@@ -25,12 +25,13 @@ class EvalJudgeScore(BaseModel):
 def load_prompt(version: str) -> str:
     prompt_path = PROMPTS_DIR / f"{version}.yaml"
     with open(prompt_path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f)["system_prompt"]
+        data = yaml.safe_load(f)
+        return data.get("system")
 
 
 def evaluate_quality_with_judge(provider: LLMProvider, query: str, answer: str, actions: list) -> int:
     """Usa un LLM para puntuar la calidad humana de la respuesta generada (LLM-as-Judge)."""
-    judge_prompt = """Eres un auditor de calidad. Evalúa del 1 al 5 qué tan útil y profesional es la respuesta y las acciones sugeridas para el siguiente ticket de soporte. Solo da el puntaje y una breve razón."""
+    judge_prompt = "Eres un auditor de calidad. Evalúa del 1 al 5 qué tan útil y profesional es la respuesta y las acciones sugeridas para el siguiente ticket de soporte. Solo da el puntaje y una breve razón."
     user_msg = f"TICKET: {query}\nRESPUESTA DEL BOT: {answer}\nACCIONES SUGERIDAS: {actions}"
     
     try:
@@ -69,7 +70,7 @@ def main():
             expected_category = case["expected_category"]
             
             try:
-                # 1. Generar respuesta con el prompt actual
+                # 1. Generar respuesta enviando la query directamente como mensaje del usuario
                 response_data, _ = provider.generate_structured(system_prompt, query, TicketResponse)
                 predicted_category = response_data["category"]
                 
@@ -103,9 +104,9 @@ def main():
             "avg_quality_score": round(avg_quality, 2)
         })
 
-    # Guardar resultados para que el alumno analice
+    # Guardar resultados para análisis posterior
     evals_results_path = EVALS_DIR / "results.json"
-    Path(evals_results_path).write_text(json.dumps(final_report, indent=2), encoding="utf-8")
+    evals_results_path.write_text(json.dumps(final_report, indent=2), encoding="utf-8")
     print("\nResultados guardados en evals/results.json")
 
 

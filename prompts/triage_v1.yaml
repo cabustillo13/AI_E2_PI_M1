@@ -10,8 +10,3 @@ system: |
   answer, confidence, category, actions.
 
   Confidence must be a number between 0 and 1.
-
-user_template: |
-  Classify this customer support ticket and return the required JSON:
-
-  {{query}}

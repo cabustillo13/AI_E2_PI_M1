@@ -51,7 +51,8 @@ class LLMProvider:
                     {"role": "user", "content": user_message}
                 ],
                 response_format=response_model,
-                temperature=0.0
+                temperature=0.0, # Control de aleatoriedad para salidas consistentes
+                max_tokens=4096  # Evita bucles infinitos y controla costos
             )
             
             latency = time.time() - start_time
