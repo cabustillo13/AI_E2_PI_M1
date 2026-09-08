@@ -1,1 +1,1 @@
-{"timestamp": "2026-09-08T05:31:16.821665", "ticket_preview": "Hola, me cobraron dos veces la suscripci\u00f3n de este mes, nece...", "category": "billing", "latency_sec": 1.14, "input_tokens": 511, "output_tokens": 53, "cost_usd": 0.00010845}
+{"timestamp": "2026-09-08T05:54:00.660525+00:00", "ticket_preview": "Hola, me cobraron dos veces la suscripción de este mes, nece...", "category": "billing", "latency_sec": 1.02, "input_tokens": 511, "output_tokens": 53, "cost_usd": 0.00010845}
