@@ -18,7 +18,17 @@ class LLMProvider:
         self.anthropic_client = anthropic.Anthropic(api_key=anthropic_key) if anthropic_key else None
 
     def check_moderation(self, text: str) -> bool:
-        """Guardrail 1: API de moderación de OpenAI."""
+        """Guardrail de entrada: Detecta toxicidad (OpenAI) + Patrones de Prompt Injection."""
+        # 1. Chequeo heurístico rápido de palabras clave de ataque (Prompt Injection / Jailbreak)
+        attack_keywords = [
+            "ignore previous", "system prompt", "developer message", 
+            "jailbreak", "dan", "exfiltrate", "reveal your", "act as an administrator"
+        ]
+        text_lower = text.lower()
+        if any(keyword in text_lower for keyword in attack_keywords):
+            return True # Bloqueado por heurística de inyección
+
+        # 2. Si pasa la heurística, consultamos la API de moderación tradicional
         if self.provider_name != "openai":
             return False # Anthropic modera internamente
         
