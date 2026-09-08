@@ -58,7 +58,9 @@ class LLMProvider:
             latency = time.time() - start_time
             tokens_in = response.usage.prompt_tokens
             tokens_out = response.usage.completion_tokens
-            cost = (tokens_in * 0.150 / 1_000_000) + (tokens_out * 0.600 / 1_000_000) # Costo aprox GPT-4o-mini
+            
+            # Cálculo de costos: (Tokens / 1M) * Tarifa por millón (GPT-4o-mini: $0.150 in / $0.600 out)
+            cost = (tokens_in * 0.150 / 1_000_000) + (tokens_out * 0.600 / 1_000_000)
             
             # response.choices[0].message.parsed contiene el objeto Pydantic
             return response.choices[0].message.parsed.model_dump(), {
@@ -86,7 +88,9 @@ class LLMProvider:
             latency = time.time() - start_time
             tokens_in = response.usage.input_tokens
             tokens_out = response.usage.output_tokens
-            cost = (tokens_in * 0.25 / 1_000_000) + (tokens_out * 1.25 / 1_000_000) # Costo aprox Haiku
+            
+            # Cálculo de costos: (Tokens / 1M) * Tarifa por millón (Claude 3 Haiku: $0.25 in / $1.25 out)
+            cost = (tokens_in * 0.25 / 1_000_000) + (tokens_out * 1.25 / 1_000_000)
             
             tool_use = next(block for block in response.content if block.type == "tool_use")
             return tool_use.input, {
