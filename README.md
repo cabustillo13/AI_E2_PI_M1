@@ -6,9 +6,9 @@ Proyecto integrador del Módulo 1. Este servicio automatiza el primer nivel de s
 
 El proyecto está diseñado de forma minimalista para enfocar la complejidad en los prompts y las evaluaciones, no en la arquitectura:
 
-*   `/prompts/`: Archivos YAML con las distintas versiones de tus system prompts.
-*   `/evals/`: Tu laboratorio. Contiene el dataset de prueba (`dataset.jsonl`) y el script para evaluar tus prompts (`runner.py`).
-*   `/src/`: El código de producción.
+*   `prompts/`: Archivos YAML con las distintas versiones de tus system prompts.
+*   `evals/`: Tu laboratorio. Contiene el dataset de prueba (`dataset.jsonl`) y el script para evaluar tus prompts (`runner.py`).
+*   `src/`: El código de producción.
     *   `models.py`: Contratos de datos (Pydantic).
     *   `llm_client.py`: Conexión con OpenAI/Anthropic forzando salidas JSON.
     *   `service.py`: La lógica de negocio (Guardrails -> LLM -> Juez de Fallback).
@@ -34,7 +34,7 @@ El proyecto está diseñado de forma minimalista para enfocar la complejidad en 
     cp .env.example .env
     ```
 
-## Fase 1: Ingeniería de Contexto y Evals
+## Ingeniería de Contexto y Evaluaciones
 
 Antes de levantar la API, necesitas un prompt que funcione.
 No adivines la calidad de tu prompt: **mídela**.
